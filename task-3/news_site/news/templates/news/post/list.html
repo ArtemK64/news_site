@@ -20,6 +20,9 @@
                         {% endfor %}
                     </p>
                 </h2>
+                <p>
+                    <a href="{% url "news:update_post" post.id %}">Update Post</a>
+                </p>
                 <p class="date">
                     Published {{ post.publish }} by {{ post.author }}
                 </p>

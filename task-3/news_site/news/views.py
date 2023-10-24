@@ -1,12 +1,15 @@
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
+from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import UpdateView
 from taggit.models import Tag
 
-from news.forms import EmailPostForm, CommentForm
+from news.forms import EmailPostForm, CommentForm, PostForm
 from news.models import Post
 
 
@@ -100,3 +103,29 @@ def post_share(request, post_id):
     return render(request, 'news/post/share.html', {'post': post,
                                                     'form': form,
                                                     'sent': sent})
+
+
+@staff_member_required
+def create_post(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('/news')
+    else:
+        form = PostForm()
+    return render(request, 'news/post/create_post.html', {'form': form})
+
+
+def update_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if post.author != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You are not allowed to edit this post")
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES, instance=post)
+        if form.is_valid():
+            form.save()
+            return redirect('/news', post_id=post.id)
+    else:
+        form = PostForm(instance=post)
+    return render(request, 'news/post/update_post.html', {'form': form, 'post': post})
